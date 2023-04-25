@@ -1,10 +1,15 @@
-from mutagen.easyid3 import ID3
+import base64
+import io
+import magic
+import pathlib
+import re
+import sys
+
+import mutagen
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
-from wasmer import engine,Store, Module, Instance,Memory,Uint8Array,Int32Array
-import io,sys,pathlib
-import re,base64,magic
-import mutagen
+from mutagen.easyid3 import ID3
+from wasmer import Store, Module, Instance, Uint8Array, Int32Array
 
 
 class XMInfo:
@@ -30,6 +35,7 @@ class XMInfo:
         mediaType: S
     }
     '''
+
     def __init__(self):
         self.title = ""
         self.artist = ""
@@ -42,23 +48,26 @@ class XMInfo:
         self.encoding_technology = ""
 
     def iv(self):
-        if (self.ISRC != ""):
+        if self.ISRC != "":
             return bytes.fromhex(self.ISRC)
         return bytes.fromhex(self.encodedby)
+
 
 def get_str(x):
     if x is None:
         return ""
     return x
 
+
 def read_file(x):
-    with open(x,"rb") as f:
+    with open(x, "rb") as f:
         return f.read()
 
+
 # return number of id3 bytes
-def get_xm_info(data:bytes):
+def get_xm_info(data: bytes):
     # print(EasyID3(io.BytesIO(data)))
-    id3 = ID3(io.BytesIO(data),v2_version=3)
+    id3 = ID3(io.BytesIO(data), v2_version=3)
     id3value = XMInfo()
     id3value.title = str(id3["TIT2"])
     id3value.album = str(id3["TALB"])
@@ -70,6 +79,7 @@ def get_xm_info(data:bytes):
     id3value.header_size = id3.size
     id3value.encoding_technology = str(id3["TSSE"])
     return id3value
+
 
 '''
 function d(n, t, e) {
@@ -113,16 +123,20 @@ console.log(e,o,u,i,f,a);
 if (i) throw f = 0, a = 0, w(u);
 return b(f, a)
 '''
-def get_printable_count(x:bytes):
+
+
+def get_printable_count(x: bytes):
     i = 0
-    for i,c in enumerate(x):
+    for i, c in enumerate(x):
         # all pritable
         if c < 0x20 or c > 0x7e:
             return i
     return i
 
-def get_printable_bytes(x:bytes):
+
+def get_printable_bytes(x: bytes):
     return x[:get_printable_count(x)]
+
 
 def xm_decrypt(raw_data):
     # load xm encryptor
@@ -133,8 +147,8 @@ def xm_decrypt(raw_data):
     ))
     # decode id3
     xm_info = get_xm_info(raw_data)
-    print("id3 header size: ",hex(xm_info.header_size))
-    encrypted_data = raw_data[xm_info.header_size:xm_info.header_size+xm_info.size:]
+    print("id3 header size: ", hex(xm_info.header_size))
+    encrypted_data = raw_data[xm_info.header_size:xm_info.header_size + xm_info.size:]
 
     # Stage 1 aes-256-cbc
     xm_key = b"ximalayaximalayaximalayaximalaya"
@@ -151,63 +165,67 @@ def xm_decrypt(raw_data):
     stack_pointer = xm_encryptor.exports.a(-16)
     assert isinstance(stack_pointer, int)
     de_data_offset = xm_encryptor.exports.c(len(de_data))
-    assert isinstance(de_data_offset,int)
+    assert isinstance(de_data_offset, int)
     track_id_offset = xm_encryptor.exports.c(len(track_id))
     assert isinstance(track_id_offset, int)
     memory_i = xm_encryptor.exports.i
-    memview_unit8:Uint8Array = memory_i.uint8_view(offset=de_data_offset)
-    for i,b in enumerate(de_data):
+    memview_unit8: Uint8Array = memory_i.uint8_view(offset=de_data_offset)
+    for i, b in enumerate(de_data):
         memview_unit8[i] = b
     memview_unit8: Uint8Array = memory_i.uint8_view(offset=track_id_offset)
-    for i,b in enumerate(track_id):
+    for i, b in enumerate(track_id):
         memview_unit8[i] = b
-    print(bytearray(memory_i.buffer)[track_id_offset:track_id_offset+len(track_id)].decode())
+    print(bytearray(memory_i.buffer)[track_id_offset:track_id_offset + len(track_id)].decode())
     print(f"decrypt stage 2 (xmDecrypt):\n"
           f"    stack_pointer = {stack_pointer},\n"
           f"    data_pointer = {de_data_offset}, data_length = {len(de_data)},\n"
           f"    track_id_pointer = {track_id_offset}, track_id_length = {len(track_id)}")
     print("success")
-    xm_encryptor.exports.g(stack_pointer,de_data_offset,len(de_data),track_id_offset,len(track_id))
+    xm_encryptor.exports.g(stack_pointer, de_data_offset, len(de_data), track_id_offset, len(track_id))
     memview_int32: Int32Array = memory_i.int32_view(offset=stack_pointer // 4)
     result_pointer = memview_int32[0]
     result_length = memview_int32[1]
     assert memview_int32[2] == 0, memview_int32[3] == 0
-    result_data = bytearray(memory_i.buffer)[result_pointer:result_pointer+result_length].decode()
+    result_data = bytearray(memory_i.buffer)[result_pointer:result_pointer + result_length].decode()
     # Stage 3 combine
     print(f"Stage 3 (base64)")
-    decrypted_data = base64.b64decode(xm_info.encoding_technology+result_data)
-    final_data = decrypted_data + raw_data[xm_info.header_size+xm_info.size::]
+    decrypted_data = base64.b64decode(xm_info.encoding_technology + result_data)
+    final_data = decrypted_data + raw_data[xm_info.header_size + xm_info.size::]
     print("success")
-    return xm_info,final_data
+    return xm_info, final_data
+
 
 def xm_decrypt_v12():
     pass
 
+
 def find_ext(data):
-    exts = ["m4a","mp3","flac","wav"]
+    exts = ["m4a", "mp3", "flac", "wav"]
     value = magic.from_buffer(data).lower()
     for ext in exts:
         if ext in value:
             return ext
     raise Exception(f"unexpected format {value}")
 
-def decrypt_xm_file(from_file,output=''):
+
+def decrypt_xm_file(from_file, output=''):
     print(f"decrypting {from_file}")
     data = read_file(from_file)
     info, audio_data = xm_decrypt(data)
     if output == "":
-        output = re.sub(r'[^\w\-_\. ]', '_', info.title)+"."+find_ext(audio_data[:0xff])
+        output = re.sub(r'[^\w\-_\. ]', '_', info.title) + "." + find_ext(audio_data[:0xff])
     buffer = io.BytesIO(audio_data)
-    tags = mutagen.File(buffer,easy=True)
+    tags = mutagen.File(buffer, easy=True)
     tags["title"] = info.title
     tags["album"] = info.album
     tags["artist"] = info.artist
     print(tags.pprint())
     tags.save(buffer)
-    with open(output,"wb") as f:
+    with open(output, "wb") as f:
         buffer.seek(0)
         f.write(buffer.read())
     print(f"decrypt succeed, file write to {output}")
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
