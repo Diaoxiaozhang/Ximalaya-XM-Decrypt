@@ -1,0 +1,5 @@
+mutagen
+pycryptodome
+wasmer
+python-magic
+python-magic-bin
