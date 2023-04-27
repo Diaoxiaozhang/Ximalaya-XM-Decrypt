@@ -1,9 +1,12 @@
 import base64
 import io
+import sys
+
 import magic
 import pathlib
 import re
-import sys
+import os
+import glob
 
 import mutagen
 from Crypto.Cipher import AES
@@ -13,29 +16,6 @@ from wasmer import Store, Module, Instance, Uint8Array, Int32Array
 
 
 class XMInfo:
-    '''
-    const {
-        title: s,
-        artist: l,
-        subtitle: c,
-        length: d,
-        comment: {
-            language: u,
-            text: p
-        },
-        album: h,
-        trackNumber: b,
-        size: g,
-        encodingTechnology: v,
-        ISRC: _,
-        fileType: y,
-        encodedBy: w,
-        publisher: k,
-        composer: x,
-        mediaType: S
-    }
-    '''
-
     def __init__(self):
         self.title = ""
         self.artist = ""
@@ -79,50 +59,6 @@ def get_xm_info(data: bytes):
     id3value.header_size = id3.size
     id3value.encoding_technology = str(id3["TSSE"])
     return id3value
-
-
-'''
-function d(n, t, e) {
-        if (void 0 === e) {
-            const e = i.encode(n),
-                r = t(e.length);
-            return u().subarray(r, r + e.length).set(e), c = e.length, r
-        }
-        let r = n.length,
-            o = t(r);
-        const d = u();
-        let a = 0;
-        for (; a < r; a++) {
-            const t = n.charCodeAt(a);
-            if (t > 127) break;
-            d[o + a] = t
-        }
-        if (a !== r) {
-            0 !== a && (n = n.slice(a)), o = e(o, r, r = a + 3 * n.length);
-            const t = u().subarray(o + a, o + r);
-            a += f(n, t).written
-        }
-        return c = a, o
-    }
-const s = r.a(-16),
-    y = d(n, r.c, r.d),
-    h = c,
-    g = d(t, r.c, r.d),
-    p = c;
-console.log(r,r.a(0),r.c,r.d);
-console.log(s,y,h,g,p);
-r.g(s, y, h, g, p);
-console.log(s,y,h,g,p);
-var e = l()[s / 4 + 0],
-    o = l()[s / 4 + 1],
-    u = l()[s / 4 + 2],
-    i = l()[s / 4 + 3],
-    f = e,
-    a = o;
-console.log(e,o,u,i,f,a);
-if (i) throw f = 0, a = 0, w(u);
-return b(f, a)
-'''
 
 
 def get_printable_count(x: bytes):
@@ -228,7 +164,39 @@ def decrypt_xm_file(from_file, output=''):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python main.py [<filename> ...]")
-    for filename in sys.argv[1::]:
-        decrypt_xm_file(filename)
+    while True:
+        print("欢迎使用喜马拉雅音频解密工具")
+        print("本工具仅供学习交流使用，严禁用于商业用途")
+        print("请选择您想要使用的功能：")
+        print("1. 解密单个文件")
+        print("2. 批量解密文件")
+        print("3. 退出")
+        choice = input()
+        if choice == "1":
+            while True:
+                print("请输入需要解密的文件路径：")
+                file_to_decrypt = input()
+                if not os.path.exists(file_to_decrypt):
+                    print("您输入文件不存在，请重新输入！")
+                elif not os.path.isfile(file_to_decrypt):
+                    print("您输入的不是一个合法的文件目录，请重新输入！")
+                else:
+                    decrypt_xm_file(file_to_decrypt)
+                    break
+        elif choice == "2":
+            while True:
+                print("请输入包含需要解密的文件的文件夹路径：")
+                dir_to_decrypt = input()
+                if not os.path.exists(dir_to_decrypt):
+                    print("您输入的文件夹不存在，请重新输入！")
+                elif not os.path.isdir(dir_to_decrypt):
+                    print("您输入的不是一个合法的文件夹目录，请重新输入！")
+                else:
+                    files_to_decrypt = glob.glob(os.path.join(dir_to_decrypt, "*" + ".xm"))
+                    for file_to_decrypt in files_to_decrypt:
+                        decrypt_xm_file(file_to_decrypt)
+                    break
+        elif choice == "3":
+            sys.exit()
+        else:
+            print("输入错误，请重新输入！")
