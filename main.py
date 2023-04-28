@@ -4,7 +4,6 @@ import sys
 
 import magic
 import pathlib
-import re
 import os
 import glob
 
