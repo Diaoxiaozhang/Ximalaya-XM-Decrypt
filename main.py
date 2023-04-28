@@ -1,12 +1,10 @@
 import base64
 import io
 import sys
-
 import magic
 import pathlib
 import os
 import glob
-
 import mutagen
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
