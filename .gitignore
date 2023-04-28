@@ -161,3 +161,6 @@ cython_debug/
 
 # test xm file
 test.xm
+
+# output path
+output/
