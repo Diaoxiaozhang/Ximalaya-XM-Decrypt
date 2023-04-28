@@ -9,7 +9,8 @@ import mutagen
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 from mutagen.easyid3 import ID3
-from wasmer import Store, Module, Instance, Uint8Array, Int32Array
+from wasmer import Store, Module, Instance, Uint8Array, Int32Array, engine
+from wasmer_compiler_cranelift import Compiler
 
 
 class XMInfo:
@@ -75,7 +76,7 @@ def xm_decrypt(raw_data):
     # load xm encryptor
     # print("loading xm encryptor")
     xm_encryptor = Instance(Module(
-        Store(),
+        Store(engine.Universal(Compiler)),
         pathlib.Path("./xm_encryptor.wasm").read_bytes()
     ))
     # decode id3
