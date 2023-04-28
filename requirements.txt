@@ -1,5 +1,5 @@
 mutagen
 pycryptodome
 wasmer
-python-magic
 python-magic-bin
+wasmer_compiler_cranelift
