@@ -164,3 +164,6 @@ test.xm
 
 # output path
 output/
+
+# python
+Python-3.9.16/
