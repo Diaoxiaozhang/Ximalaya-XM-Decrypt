@@ -76,25 +76,25 @@ def get_printable_bytes(x: bytes):
 
 def xm_decrypt(raw_data):
     # load xm encryptor
-    print("loading xm encryptor")
+    # print("loading xm encryptor")
     xm_encryptor = Instance(Module(
         Store(),
         pathlib.Path("./xm_encryptor.wasm").read_bytes()
     ))
     # decode id3
     xm_info = get_xm_info(raw_data)
-    print("id3 header size: ", hex(xm_info.header_size))
+    # print("id3 header size: ", hex(xm_info.header_size))
     encrypted_data = raw_data[xm_info.header_size:xm_info.header_size + xm_info.size:]
 
     # Stage 1 aes-256-cbc
     xm_key = b"ximalayaximalayaximalayaximalaya"
-    print(f"decrypt stage 1 (aes-256-cbc):\n"
-          f"    data length = {len(encrypted_data)},\n"
-          f"    key = {xm_key},\n"
-          f"    iv = {xm_info.iv().hex()}")
+    # print(f"decrypt stage 1 (aes-256-cbc):\n"
+    #       f"    data length = {len(encrypted_data)},\n"
+    #       f"    key = {xm_key},\n"
+    #       f"    iv = {xm_info.iv().hex()}")
     cipher = AES.new(xm_key, AES.MODE_CBC, xm_info.iv())
     de_data = cipher.decrypt(pad(encrypted_data, 16))
-    print("success")
+    # print("success")
     # Stage 2 xmDecrypt
     de_data = get_printable_bytes(de_data)
     track_id = str(xm_info.tracknumber).encode()
@@ -111,12 +111,12 @@ def xm_decrypt(raw_data):
     memview_unit8: Uint8Array = memory_i.uint8_view(offset=track_id_offset)
     for i, b in enumerate(track_id):
         memview_unit8[i] = b
-    print(bytearray(memory_i.buffer)[track_id_offset:track_id_offset + len(track_id)].decode())
-    print(f"decrypt stage 2 (xmDecrypt):\n"
-          f"    stack_pointer = {stack_pointer},\n"
-          f"    data_pointer = {de_data_offset}, data_length = {len(de_data)},\n"
-          f"    track_id_pointer = {track_id_offset}, track_id_length = {len(track_id)}")
-    print("success")
+    # print(bytearray(memory_i.buffer)[track_id_offset:track_id_offset + len(track_id)].decode())
+    # print(f"decrypt stage 2 (xmDecrypt):\n"
+    #       f"    stack_pointer = {stack_pointer},\n"
+    #       f"    data_pointer = {de_data_offset}, data_length = {len(de_data)},\n"
+    #       f"    track_id_pointer = {track_id_offset}, track_id_length = {len(track_id)}")
+    # print("success")
     xm_encryptor.exports.g(stack_pointer, de_data_offset, len(de_data), track_id_offset, len(track_id))
     memview_int32: Int32Array = memory_i.int32_view(offset=stack_pointer // 4)
     result_pointer = memview_int32[0]
@@ -124,10 +124,10 @@ def xm_decrypt(raw_data):
     assert memview_int32[2] == 0, memview_int32[3] == 0
     result_data = bytearray(memory_i.buffer)[result_pointer:result_pointer + result_length].decode()
     # Stage 3 combine
-    print(f"Stage 3 (base64)")
+    # print(f"Stage 3 (base64)")
     decrypted_data = base64.b64decode(xm_info.encoding_technology + result_data)
     final_data = decrypted_data + raw_data[xm_info.header_size + xm_info.size::]
-    print("success")
+    # print("success")
     return xm_info, final_data
 
 
@@ -145,11 +145,13 @@ def find_ext(data):
 
 
 def decrypt_xm_file(from_file, output=''):
-    print(f"decrypting {from_file}")
+    print(f"正在解密{from_file}")
     data = read_file(from_file)
     info, audio_data = xm_decrypt(data)
     if output == "":
-        output = re.sub(r'[^\w\-_\. ]', '_', info.title) + "." + find_ext(audio_data[:0xff])
+        output = f"./output/{info.album}/{info.title}"
+    if not os.path.exists(f"./output/{info.album}"):
+        os.makedirs(f"./output/{info.album}")
     buffer = io.BytesIO(audio_data)
     tags = mutagen.File(buffer, easy=True)
     tags["title"] = info.title
@@ -160,7 +162,7 @@ def decrypt_xm_file(from_file, output=''):
     with open(output, "wb") as f:
         buffer.seek(0)
         f.write(buffer.read())
-    print(f"decrypt succeed, file write to {output}")
+    print(f"解密成功，文件保存至{output}！")
 
 
 if __name__ == "__main__":
