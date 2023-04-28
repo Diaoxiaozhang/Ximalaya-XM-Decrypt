@@ -149,7 +149,7 @@ def decrypt_xm_file(from_file, output=''):
     data = read_file(from_file)
     info, audio_data = xm_decrypt(data)
     if output == "":
-        output = f"./output/{info.album}/{info.title}"
+        output = f"./output/{info.album}/{info.title}.{find_ext(audio_data[:0xff])}"
     if not os.path.exists(f"./output/{info.album}"):
         os.makedirs(f"./output/{info.album}")
     buffer = io.BytesIO(audio_data)
