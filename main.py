@@ -129,10 +129,6 @@ def xm_decrypt(raw_data):
     return xm_info, final_data
 
 
-def xm_decrypt_v12():
-    pass
-
-
 def find_ext(data):
     exts = ["m4a", "mp3", "flac", "wav"]
     value = magic.from_buffer(data).lower()
