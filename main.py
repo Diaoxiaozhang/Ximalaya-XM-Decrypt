@@ -143,9 +143,9 @@ def decrypt_xm_file(from_file, output=''):
     data = read_file(from_file)
     info, audio_data = xm_decrypt(data)
     if output == "":
-        output = f"./output/{info.album}/{info.title}.{find_ext(audio_data[:0xff])}"
-    if not os.path.exists(f"./output/{info.album}"):
-        os.makedirs(f"./output/{info.album}")
+        output = f"./output/{replace_invalid_chars(info.album)}/{replace_invalid_chars(info.title)}.{find_ext(audio_data[:0xff])}"
+    if not os.path.exists(f"./output/{replace_invalid_chars(info.album)}"):
+        os.makedirs(f"./output/{replace_invalid_chars(info.album)}")
     buffer = io.BytesIO(audio_data)
     tags = mutagen.File(buffer, easy=True)
     tags["title"] = info.title
@@ -157,6 +157,14 @@ def decrypt_xm_file(from_file, output=''):
         buffer.seek(0)
         f.write(buffer.read())
     print(f"解密成功，文件保存至{output}！")
+
+
+def replace_invalid_chars(name):
+    invalid_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|']
+    for char in invalid_chars:
+        if char in name:
+            name = name.replace(char, " ")
+    return name
 
 
 if __name__ == "__main__":
