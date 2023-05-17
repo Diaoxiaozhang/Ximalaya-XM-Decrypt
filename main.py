@@ -144,8 +144,8 @@ def decrypt_xm_file(from_file, output=''):
     info, audio_data = xm_decrypt(data)
     if output == "":
         output = f"./output/{replace_invalid_chars(info.album)}/{replace_invalid_chars(info.title)}.{find_ext(audio_data[:0xff])}"
-    if not os.path.exists(f"./output/{replace_invalid_chars(info.album)}"):
-        os.makedirs(f"./output/{replace_invalid_chars(info.album)}")
+        if not os.path.exists(f"./output/{replace_invalid_chars(info.album)}"):
+            os.makedirs(f"./output/{replace_invalid_chars(info.album)}")
     buffer = io.BytesIO(audio_data)
     tags = mutagen.File(buffer, easy=True)
     tags["title"] = info.title
