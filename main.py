@@ -138,14 +138,13 @@ def find_ext(data):
     raise Exception(f"unexpected format {value}")
 
 
-def decrypt_xm_file(from_file, output=''):
+def decrypt_xm_file(from_file, output_path='./output'):
     print(f"正在解密{from_file}")
     data = read_file(from_file)
     info, audio_data = xm_decrypt(data)
-    if output == "":
-        output = f"./output/{replace_invalid_chars(info.album)}/{replace_invalid_chars(info.title)}.{find_ext(audio_data[:0xff])}"
-        if not os.path.exists(f"./output/{replace_invalid_chars(info.album)}"):
-            os.makedirs(f"./output/{replace_invalid_chars(info.album)}")
+    output = f"{output_path}/{replace_invalid_chars(info.album)}/{replace_invalid_chars(info.title)}.{find_ext(audio_data[:0xff])}"
+    if not os.path.exists(f"{output_path}/{replace_invalid_chars(info.album)}"):
+        os.makedirs(f"{output_path}/{replace_invalid_chars(info.album)}")
     buffer = io.BytesIO(audio_data)
     tags = mutagen.File(buffer, easy=True)
     tags["title"] = info.title
@@ -176,30 +175,50 @@ if __name__ == "__main__":
         print("2. 批量解密文件")
         print("3. 退出")
         choice = input()
-        if choice == "1":
+        if choice == "1" or choice == "2":
+            if choice == "1":
+                while True:
+                    print("请输入需要解密的文件路径：")
+                    file_to_decrypt = input()
+                    if not os.path.exists(file_to_decrypt):
+                        print("您输入文件不存在，请重新输入！")
+                    elif not os.path.isfile(file_to_decrypt):
+                        print("您输入的不是一个合法的文件目录，请重新输入！")
+                    else:
+                        files_to_decrypt = [file_to_decrypt]
+                        break
+            elif choice == "2":
+                while True:
+                    print("请输入包含需要解密的文件的文件夹路径：")
+                    dir_to_decrypt = input()
+                    if not os.path.exists(dir_to_decrypt):
+                        print("您输入的文件夹不存在，请重新输入！")
+                    elif not os.path.isdir(dir_to_decrypt):
+                        print("您输入的不是一个合法的文件夹目录，请重新输入！")
+                    else:
+                        files_to_decrypt = glob.glob(os.path.join(dir_to_decrypt, "*.xm"))
+                        break
             while True:
-                print("请输入需要解密的文件路径：")
-                file_to_decrypt = input()
-                if not os.path.exists(file_to_decrypt):
-                    print("您输入文件不存在，请重新输入！")
-                elif not os.path.isfile(file_to_decrypt):
-                    print("您输入的不是一个合法的文件目录，请重新输入！")
-                else:
-                    decrypt_xm_file(file_to_decrypt)
+                print("请选择是否需要设置输出路径：（不设置默认为本程序目录下的output文件夹）")
+                print("1. 设置输出路径")
+                print("2. 不设置输出路径")
+                choice = input()
+                if choice == "1":
+                    print("请输入输出路径：")
+                    output_path = input()
+                    if not os.path.exists(output_path):
+                        print("您输入的文件夹不存在，请重新输入！")
+                    elif not os.path.isdir(output_path):
+                        print("您输入的不是一个合法的文件夹目录，请重新输入！")
+                    else:
+                        break
+                elif choice == "2":
+                    output_path = ""
                     break
-        elif choice == "2":
-            while True:
-                print("请输入包含需要解密的文件的文件夹路径：")
-                dir_to_decrypt = input()
-                if not os.path.exists(dir_to_decrypt):
-                    print("您输入的文件夹不存在，请重新输入！")
-                elif not os.path.isdir(dir_to_decrypt):
-                    print("您输入的不是一个合法的文件夹目录，请重新输入！")
                 else:
-                    files_to_decrypt = glob.glob(os.path.join(dir_to_decrypt, "*" + ".xm"))
-                    for file_to_decrypt in files_to_decrypt:
-                        decrypt_xm_file(file_to_decrypt)
-                    break
+                    print("输入错误，请重新输入！")
+            for file in files_to_decrypt:
+                decrypt_xm_file(file, output_path)
         elif choice == "3":
             sys.exit()
         else:
