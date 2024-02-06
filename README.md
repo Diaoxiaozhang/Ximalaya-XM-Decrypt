@@ -7,4 +7,4 @@
 
 在使用该软件时，请确保xm_encryptor.wasm文件与主程序文件处在同一目录下，最好是一个单独的文件夹。
 
-打个小广告：[数云发卡网](https://faka.283528.xyz/)，出售chatgpt、google、twitter等账号卡密，价格实惠。小站刚刚建立，望大家多多支持。
+打个小广告：[数云发卡网](https://faka.283528.xyz/)，出售chatgpt独享号、chatgpt plus共享号、google、twitter等账号卡密，价格实惠。小站刚刚建立，望大家多多支持。
