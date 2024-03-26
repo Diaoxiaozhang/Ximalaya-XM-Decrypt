@@ -196,8 +196,14 @@ if __name__ == "__main__":
         if choice == "1" or choice == "2":
             if choice == "1":
                 files_to_decrypt = [select_file()]
+                if files_to_decrypt == [""]:
+                    print("检测到文件选择窗口被关闭")
+                    continue
             elif choice == "2":
                 dir_to_decrypt = select_directory()
+                if dir_to_decrypt == "":
+                    print("检测到目录选择窗口被关闭")
+                    continue
                 files_to_decrypt = glob.glob(os.path.join(dir_to_decrypt, "*.xm"))
             print("请选择是否需要设置输出路径：（不设置默认为本程序目录下的output文件夹）")
             print("1. 设置输出路径")
@@ -205,6 +211,9 @@ if __name__ == "__main__":
             choice = input()
             if choice == "1":
                 output_path = select_directory()
+                if output_path == "":
+                    print("检测到目录选择窗口被关闭")
+                    continue
             elif choice == "2":
                 output_path = ""
             for file in files_to_decrypt:
