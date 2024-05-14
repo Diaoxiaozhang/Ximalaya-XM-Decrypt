@@ -215,7 +215,7 @@ if __name__ == "__main__":
                     print("检测到目录选择窗口被关闭")
                     continue
             elif choice == "2":
-                output_path = ""
+                output_path = "./output"
             for file in files_to_decrypt:
                 decrypt_xm_file(file, output_path)
         elif choice == "3":
