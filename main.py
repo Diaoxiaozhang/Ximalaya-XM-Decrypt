@@ -13,7 +13,7 @@ from Crypto.Util.Padding import pad
 from mutagen.easyid3 import ID3
 from wasmer import Store, Module, Instance, Uint8Array, Int32Array, engine
 from wasmer_compiler_cranelift import Compiler
-
+import ffmpeg
 
 class XMInfo:
     def __init__(self):
@@ -132,7 +132,7 @@ def xm_decrypt(raw_data):
 
 
 def find_ext(data):
-    exts = ["m4a", "mp3", "flac", "wav"]
+    exts = ["m4a", "mp3", "flac", "wav", "mpeg"]
     value = magic.from_buffer(data).lower()
     for ext in exts:
         if ext in value:
@@ -149,14 +149,32 @@ def decrypt_xm_file(from_file, output_path='./output'):
         os.makedirs(f"{output_path}/{replace_invalid_chars(info.album)}")
     buffer = io.BytesIO(audio_data)
     tags = mutagen.File(buffer, easy=True)
-    tags["title"] = info.title
-    tags["album"] = info.album
-    tags["artist"] = info.artist
-    print(tags.pprint())
-    tags.save(buffer)
-    with open(output, "wb") as f:
-        buffer.seek(0)
-        f.write(buffer.read())
+    if tags is not None:
+        tags["title"] = info.title
+        tags["album"] = info.album
+        tags["artist"] = info.artist
+        print(tags.pprint())
+        tags.save(buffer)
+        with open(output, "wb") as f:
+            buffer.seek(0)
+            f.write(buffer.read())
+    else:
+        try:
+            output = os.path.splitext(output)[0] + ".m4a"
+            # 使用 ffmpeg 从缓冲区读取数据并输出到文件
+            process = (
+                ffmpeg
+                .input('pipe:0', format='aac')  # 从标准输入读取 AAC 数据
+                .output(output, codec='copy')  # 输出为 M4A 格式
+                .overwrite_output()  # 允许覆盖输出文件
+                .run_async(pipe_stdin=True, pipe_stdout=True, pipe_stderr=True)
+            )
+            # 将缓冲区数据传递给 ffmpeg 的 stdin
+            stdout, stderr = process.communicate(input=buffer.getvalue())
+
+            print(f"转换成功，文件保存至 {output}！")
+        except ffmpeg.Error as e:
+            print(f"FFmpeg 转换失败: {e.stderr.decode()}")
     print(f"解密成功，文件保存至{output}！")
 
 

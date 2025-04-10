@@ -3,3 +3,4 @@ pycryptodome
 wasmer
 python-magic-bin
 wasmer_compiler_cranelift
+python-ffmpeg
